@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
 
+
 class Compiler:
     name = None
 
@@ -98,7 +99,8 @@ class Compile:
         return None
 
     def sort_subgraph_nodes(self):
-
+        nodes = self.find_subgraph_nodes()
+        return nx.topological_sort(graph, nbunch=nodes)
 
 
 def create_graph(compilers):
@@ -130,7 +132,7 @@ graph = create_graph(compilers)
 compile_field = Compile(compiler_mapping['comp2'].name, graph)
 
 # print(compiler_mapping['comp2'].find_predecessors(graph))
-# print(compile_field.find_successors_tree())
+print(compile_field.sort_subgraph_nodes())
 
 
 # pos = graphviz_layout(graph, prog='dot')
