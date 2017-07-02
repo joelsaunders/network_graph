@@ -4,103 +4,103 @@ from networkx.drawing.nx_agraph import graphviz_layout
 
 
 class Compiler:
-    name = None
 
     def find_predecessors(self, graph):
-        return graph.predecessors(self.name)
+        return graph.predecessors(self)
 
     def find_sucessors(self, graph):
-        return graph.successors(self.name)
+        return graph.successors(self)
+
+    def compile(self):
+        print('compiled {}'.format(self.__class__.__name__))
 
 
 class CompilerOne(Compiler):
-    name = 'one'
-
-    def __init__(self):
-        self.requirements = []
+    @staticmethod
+    def requirements():
+        return []
 
 
 class CompilerTwo(Compiler):
-    name = 'two'
-
-    def __init__(self):
-        self.requirements = [CompilerOne, CompilerThree]
+    @staticmethod
+    def requirements():
+        return [CompilerOne, CompilerThree]
 
 
 class CompilerThree(Compiler):
-    name = 'three'
-
-    def __init__(self):
-        self.requirements = []
+    @staticmethod
+    def requirements():
+        return []
 
 
 class CompilerFour(Compiler):
-    name = 'four'
-
-    def __init__(self):
-        self.requirements = []
+    @staticmethod
+    def requirements():
+        return []
 
 
 class CompilerFive(Compiler):
-    name = 'five'
-
-    def __init__(self):
-        self.requirements = [CompilerFour]
+    @staticmethod
+    def requirements():
+        return [CompilerFour]
 
 
 class CompilerSix(Compiler):
-    name = 'six'
-
-    def __init__(self):
-        self.requirements = [CompilerTwo, CompilerFive]
+    @staticmethod
+    def requirements():
+        return [CompilerTwo, CompilerFive]
 
 
 class CompilerSeven(Compiler):
-    name = 'seven'
-
-    def __init__(self):
-        self.requirements = [CompilerFour]
+    @staticmethod
+    def requirements():
+        return [CompilerFour]
 
 
 class CompilerEight(Compiler):
-    name = 'eight'
-
-    def __init__(self):
-        self.requirements = [CompilerSeven]
+    @staticmethod
+    def requirements():
+        return [CompilerSeven]
 
 
 class CompilerNine(Compiler):
-    name = 'nine'
-
-    def __init__(self):
-        self.requirements = []
+    @staticmethod
+    def requirements():
+        return []
 
 
 class CompilerTen(Compiler):
-    name = 'ten'
+    @staticmethod
+    def requirements():
+        return [CompilerNine]
 
-    def __init__(self):
-        self.requirements = [CompilerNine]
 
-
-class Compile:
-    def __init__(self, field, graph):
-        self.field = field
+class CompileManager:
+    def __init__(self, fields, graph):
+        self.fields = fields
         self.graph = graph
 
-    def find_successors_tree(self):
-        return nx.algorithms.dfs_successors(self.graph, self.field)
+    # def find_successors_tree(self):
+    #     return nx.algorithms.dfs_successors(self.graph, self.field)
 
-    def find_subgraph_nodes(self):
+    def find_subgraph_nodes(self, field):
         sub_graphs = [x for x in nx.weakly_connected_components(self.graph)]
         for graph in sub_graphs:
-            if self.field in graph:
+            if field in graph:
                 return graph
         return None
 
     def sort_subgraph_nodes(self):
-        nodes = self.find_subgraph_nodes()
-        return nx.topological_sort(graph, nbunch=nodes)
+        recompile_nodes = set()
+        # Todo: optimisation here: if node already in set then assume entire sub-graph is
+        for field in self.fields:
+            nodes = self.find_subgraph_nodes(field)
+            recompile_nodes.update(nodes)
+        return nx.topological_sort(graph, nbunch=recompile_nodes)
+
+    def compile(self):
+        for node in self.sort_subgraph_nodes():
+            node().compile()
 
 
 def create_graph(compilers):
@@ -108,35 +108,36 @@ def create_graph(compilers):
     G = nx.DiGraph()
     # add nodes
 
-    for comp in compilers:
+    for compiler in compilers:
         # G.add_node(comp)
-        for requirement in comp.requirements:
-            G.add_edge(requirement.name, comp.name)
+        for requirement in compiler.requirements():
+            G.add_edge(requirement, compiler)
     return G
 
-compiler_mapping = dict(
-    comp1 = CompilerOne(),
-    comp2 = CompilerTwo(),
-    comp3 = CompilerThree(),
-    comp4 = CompilerFour(),
-    comp5 = CompilerFive(),
-    comp6 = CompilerSix(),
-    comp7 = CompilerSeven(),
-    comp8 = CompilerEight(),
-    comp9 = CompilerNine(),
-    comp10 = CompilerTen()
-)
-compilers = compiler_mapping.values()
+compilers = [
+    CompilerOne,
+    CompilerTwo,
+    CompilerThree,
+    CompilerFour,
+    CompilerFive,
+    CompilerSix,
+    CompilerSeven,
+    CompilerEight,
+    CompilerNine,
+    CompilerTen
+]
+
 
 graph = create_graph(compilers)
-compile_field = Compile(compiler_mapping['comp2'].name, graph)
+compile_field = CompileManager([CompilerOne], graph)
+compile_field.compile()
 
-# print(compiler_mapping['comp2'].find_predecessors(graph))
-print(compile_field.sort_subgraph_nodes())
-
+# print(nx.algorithms.dfs_successors(graph, CompilerFour))
 
 # pos = graphviz_layout(graph, prog='dot')
-# nx.draw(graph, with_labels=True)
+# # # nicer labels
+# labels = {v: v.__name__ for v in compilers}
+# nx.draw(graph, with_labels=True, pos=pos, labels=labels)
 # plt.savefig("path_graph1.png")
 # plt.show()
 
